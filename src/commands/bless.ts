@@ -8,13 +8,18 @@ import { SesepuhCommand } from '../utils/types';
 import { buffQueries, statsQueries } from '../utils/database';
 import {
   isSesepuh,
-  parseDuration,
   formatDuration,
   successEmbed,
   errorEmbed,
   sesepuhEmbed,
   logAction,
+  resolveBlessedRole,
+  setTemporaryNickname,
+  getCommandCooldownRemaining,
+  setCommandCooldown,
 } from '../utils/helpers';
+
+const BLESS_COOLDOWN_MS = 30 * 60 * 1000;
 
 const BLESS_MESSAGES = [
   '🌟 Berkah Sesepuh telah turun!',
@@ -27,19 +32,7 @@ const BLESS_MESSAGES = [
 export const blessCommand: SesepuhCommand = {
   data: new SlashCommandBuilder()
     .setName('bless')
-    .setDescription('👴 Berikan buff/role sementara kepada member [SESEPUH ONLY]')
-    .addUserOption((opt) =>
-      opt
-        .setName('target')
-        .setDescription('Member yang akan dibless')
-        .setRequired(true)
-    )
-    .addStringOption((opt) =>
-      opt
-        .setName('duration')
-        .setDescription('Durasi buff (contoh: 30m, 2h, 1d)')
-        .setRequired(true)
-    )
+    .setDescription('👴 Berikan buff random ke salah satu Sesepuh yang sedang online [SESEPUH ONLY]')
     .addStringOption((opt) =>
       opt
         .setName('alasan')
@@ -60,62 +53,58 @@ export const blessCommand: SesepuhCommand = {
       return;
     }
 
-    const target = interaction.options.getMember('target') as GuildMember;
-    const durationStr = interaction.options.getString('duration', true);
-    const alasan = interaction.options.getString('alasan') ?? 'Karena Sesepuh berkenan';
-
-    if (!target) {
-      await interaction.editReply({
-        embeds: [errorEmbed('Target tidak ditemukan', 'Member tersebut tidak ada di server.')],
-      });
-      return;
-    }
-
-    if (target.user.bot) {
-      await interaction.editReply({
-        embeds: [errorEmbed('Tidak bisa!', 'Bot tidak bisa dibless. Mereka sudah cukup powerful.')],
-      });
-      return;
-    }
-
-    const durationMs = parseDuration(durationStr);
-    if (!durationMs) {
+    const cooldownRemaining = getCommandCooldownRemaining(
+      interaction.guildId!,
+      'bless',
+      BLESS_COOLDOWN_MS
+    );
+    if (cooldownRemaining > 0) {
       await interaction.editReply({
         embeds: [
           errorEmbed(
-            'Format durasi salah!',
-            'Gunakan format: `30s`, `10m`, `2h`, `1d`\nMaksimum: 28 hari'
+            'Bless lagi cooldown',
+            `Aura bless baru bisa dipakai lagi <t:${Math.floor((Date.now() + cooldownRemaining) / 1000)}:R>.`
           ),
         ],
       });
       return;
     }
 
-    const blessRoleId = process.env.BLESS_ROLE_ID;
-    if (!blessRoleId) {
-      await interaction.editReply({
-        embeds: [errorEmbed('Konfigurasi Error', '`BLESS_ROLE_ID` belum diset di .env')],
-      });
-      return;
-    }
+    const alasan = interaction.options.getString('alasan') ?? 'Karena Sesepuh berkenan';
+    const allMembers = await interaction.guild!.members.fetch();
+    const candidates = allMembers
+      .filter(
+        (member) =>
+          !member.user.bot &&
+          isSesepuh(member) &&
+          member.presence?.status &&
+          member.presence.status !== 'offline'
+      )
+      .map((member) => member)
+      .filter((member) => buffQueries.getByUser.all(interaction.guildId!, member.id).length === 0);
 
-    // Check if already blessed
-    const existing = buffQueries.getByUser.all(interaction.guildId!, target.id);
-    if (existing.length > 0) {
+    if (candidates.length === 0) {
       await interaction.editReply({
         embeds: [
-          warningEmbed(
-            target.displayName,
-            `${target} sudah memiliki buff aktif. Tunggu sampai buff sebelumnya habis dulu.`
+          errorEmbed(
+            'Nggak ada kandidat blessed',
+            'Saat ini nggak ada Sesepuh online yang bisa kena bless random.'
           ),
         ],
       });
       return;
     }
+
+    const target = candidates[Math.floor(Math.random() * candidates.length)];
+
+    const durationMs = 10 * 60 * 1000;
+    const blessRole = await resolveBlessedRole(interaction.guild!);
+    const blessRoleId = blessRole.id;
 
     // Give role
     try {
       await target.roles.add(blessRoleId);
+      await setTemporaryNickname(target, '✨ Blessed ');
     } catch {
       await interaction.editReply({
         embeds: [
@@ -151,12 +140,14 @@ export const blessCommand: SesepuhCommand = {
     });
 
     const blessMsg = BLESS_MESSAGES[Math.floor(Math.random() * BLESS_MESSAGES.length)];
+    setCommandCooldown(interaction.guildId!, 'bless', executor.id);
 
     const embed = successEmbed(
       `Berkah untuk ${target.displayName}!`,
       `${blessMsg}\n\n` +
         `**Target:** ${target}\n` +
         `**Buff Role:** <@&${blessRoleId}>\n` +
+        `**Benefit:** immune /curse, priority voice, flair Blessed\n` +
         `**Durasi:** ${formattedDuration}\n` +
         `**Berakhir:** <t:${expiresTimestamp}:R>\n` +
         `**Alasan:** ${alasan}\n` +
@@ -182,6 +173,7 @@ export const blessCommand: SesepuhCommand = {
           sesepuhEmbed(
             '🌟 Kamu Dibless Sesepuh!',
             `${executor.displayName} telah memberikan berkahnya kepadamu!\n\n` +
+              `**Status:** immune dari /curse selama buff aktif\n` +
               `**Durasi:** ${formattedDuration}\n` +
               `**Berakhir:** <t:${expiresTimestamp}:R>\n` +
               `**Pesan:** ${alasan}`

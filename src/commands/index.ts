@@ -5,6 +5,12 @@ import { curseCommand } from './curse';
 import { summonCommand } from './summon';
 import { roastCommand, praiseCommand } from './roast';
 import { spinCommand, teamCommand } from './fun';
+import { balanceCommand, jadwalCommand, matchCommand, votemapCommand } from './mabar';
+import { circleCommand, misiCommand, sesepuhCommand, streakCommand } from './circle';
+import { soundboardCommand } from './soundboard';
+import { tutorialCommand } from './tutorial';
+import { statusroleCommand } from './statusrole';
+import { loreCommand, rememberCommand } from './memory';
 
 export const commands = new Collection<string, SesepuhCommand>();
 
@@ -16,6 +22,19 @@ const commandList: SesepuhCommand[] = [
   praiseCommand,
   spinCommand,
   teamCommand,
+  jadwalCommand,
+  balanceCommand,
+  votemapCommand,
+  circleCommand,
+  streakCommand,
+  misiCommand,
+  sesepuhCommand,
+  matchCommand,
+  soundboardCommand,
+  tutorialCommand,
+  statusroleCommand,
+  rememberCommand,
+  loreCommand,
 ];
 
 for (const command of commandList) {

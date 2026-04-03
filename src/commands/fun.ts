@@ -6,7 +6,16 @@ import {
 } from 'discord.js';
 import { SesepuhCommand } from '../utils/types';
 import { spinQueries } from '../utils/database';
-import { sesepuhEmbed, shuffleArray, randomPick, progressBar } from '../utils/helpers';
+import {
+  sesepuhEmbed,
+  shuffleArray,
+  randomPick,
+  progressBar,
+  errorEmbed,
+  isBlessed,
+  isMiskin,
+  blessedSpeech,
+} from '../utils/helpers';
 
 // ── Spin Challenge Pool ──────────────────────────────────
 interface Challenge {
@@ -66,10 +75,24 @@ export const spinCommand: SesepuhCommand = {
     const target =
       (interaction.options.getMember('target') as GuildMember | null) ?? executor;
 
+    if (isMiskin(executor)) {
+      await interaction.editReply({
+        embeds: [
+          errorEmbed(
+            'Lagi kena nerf',
+            'Role miskin bikin kamu nggak bisa pakai `/spin` dulu. Masuk VC dulu biar tobat.'
+          ),
+        ],
+      });
+      return;
+    }
+
+    const opener = isBlessed(executor) ? `${blessedSpeech(executor)}\n\n` : '';
+
     // Animasi spinning
     const spinningEmbed = sesepuhEmbed(
       '🎰 Roda Berputar...',
-      `Nasib **${target.displayName}** sedang ditentukan oleh Sesepuh...\n\n` +
+      `${opener}Lagi milih tantangan buat **${target.displayName}**...\n\n` +
         `${progressBar(0, 10)} 0%`,
       '#9B59B6'
     );
@@ -80,7 +103,7 @@ export const spinCommand: SesepuhCommand = {
 
     const midEmbed = sesepuhEmbed(
       '🎰 Roda Berputar...',
-      `Nasib **${target.displayName}** sedang ditentukan oleh Sesepuh...\n\n` +
+      `${opener}Bentar, roda lagi muter buat **${target.displayName}**...\n\n` +
         `${progressBar(6, 10)} 60%`,
       '#9B59B6'
     );
@@ -102,9 +125,9 @@ export const spinCommand: SesepuhCommand = {
       `🎰 Tantangan untuk ${target.displayName}!`,
       `${challenge.emoji} **${challenge.text}**\n\n` +
         `**Kategori:** ${challenge.category}\n` +
-        `**Diserahkan kepada:** ${target}\n` +
-        (target.id !== executor.id ? `**Di-spin oleh:** ${executor}\n` : '') +
-        `\n*Sesepuh menonton. Jangan mengecewakan.* 👴`,
+        `**Kena spin:** ${target}\n` +
+        (target.id !== executor.id ? `**Yang muterin:** ${executor}\n` : '') +
+        `\n${isBlessed(executor) ? 'Aura Blessed aktif, jadi omonganmu otomatis lebih didenger.' : '*Udah kepilih, jalanin ya jangan ngeles.*'}`,
       '#9B59B6'
     );
 
@@ -143,6 +166,18 @@ export const teamCommand: SesepuhCommand = {
     const mode = interaction.options.getString('mode', true);
     const executor = interaction.member as GuildMember;
     const guild = interaction.guild!;
+
+    if (isMiskin(executor)) {
+      await interaction.editReply({
+        embeds: [
+          errorEmbed(
+            'Akses dibatasi',
+            'Role miskin bikin kamu belum boleh pakai `/team`. Selesaikan masa cupumu dulu.'
+          ),
+        ],
+      });
+      return;
+    }
 
     let memberPool: GuildMember[] = [];
 
@@ -199,6 +234,7 @@ export const teamCommand: SesepuhCommand = {
     const teamNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'];
 
     let description =
+      `${isBlessed(executor) ? `${blessedSpeech(executor)}\n\n` : ''}` +
       `**Mode:** ${mode === 'vc' ? '🎙️ Voice Channel' : '🌐 Member Online'}\n` +
       `**Total Member:** ${memberPool.length}\n` +
       `**Jumlah Tim:** ${jumlahTim}\n\n` +

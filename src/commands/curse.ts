@@ -5,7 +5,7 @@ import {
   GuildMember,
 } from 'discord.js';
 import { SesepuhCommand } from '../utils/types';
-import { curseQueries, statsQueries } from '../utils/database';
+import { curseQueries, penaltyQueries, statsQueries } from '../utils/database';
 import {
   isSesepuh,
   parseDuration,
@@ -14,6 +14,11 @@ import {
   sesepuhEmbed,
   logAction,
   randomPick,
+  isBlessed,
+  getCommandCooldownRemaining,
+  setCommandCooldown,
+  resolveMiskinRole,
+  setTemporaryNickname,
 } from '../utils/helpers';
 
 const CURSE_MESSAGES = [
@@ -34,21 +39,34 @@ const CURSE_REASONS_DEFAULT = [
   'Sudah diperingatkan berkali-kali',
 ];
 
+const CURSE_COOLDOWN_MS = 30 * 60 * 1000;
+const MISKIN_DURATION_MS = 60 * 60 * 1000;
+
 export const curseCommand: SesepuhCommand = {
   data: new SlashCommandBuilder()
     .setName('curse')
-    .setDescription('👴 Timeout/mute member nakal [SESEPUH ONLY]')
+    .setDescription('👴 Kutuk target langsung atau pilih satu korban miskin random [SESEPUH ONLY]')
+    .addStringOption((opt) =>
+      opt
+        .setName('mode')
+        .setDescription('Mode kutukan')
+        .addChoices(
+          { name: 'Kutuk target biasa', value: 'normal' },
+          { name: 'Random miskin', value: 'random_miskin' }
+        )
+        .setRequired(false)
+    )
     .addUserOption((opt) =>
       opt
         .setName('target')
-        .setDescription('Member yang akan dikutuk')
-        .setRequired(true)
+        .setDescription('Member yang akan dikutuk untuk mode normal')
+        .setRequired(false)
     )
     .addStringOption((opt) =>
       opt
         .setName('duration')
-        .setDescription('Durasi timeout (contoh: 5m, 1h, 1d) — max 28 hari')
-        .setRequired(true)
+        .setDescription('Durasi timeout mode normal, contoh: 5m, 1h, 1d')
+        .setRequired(false)
     )
     .addStringOption((opt) =>
       opt
@@ -62,7 +80,6 @@ export const curseCommand: SesepuhCommand = {
 
     const executor = interaction.member as GuildMember;
 
-    // Permission check
     if (!isSesepuh(executor)) {
       await interaction.editReply({
         embeds: [
@@ -75,14 +92,115 @@ export const curseCommand: SesepuhCommand = {
       return;
     }
 
-    const target = interaction.options.getMember('target') as GuildMember;
-    const durationStr = interaction.options.getString('duration', true);
+    const cooldownRemaining = getCommandCooldownRemaining(
+      interaction.guildId!,
+      'curse',
+      CURSE_COOLDOWN_MS
+    );
+    if (cooldownRemaining > 0) {
+      await interaction.editReply({
+        embeds: [
+          errorEmbed(
+            'Curse lagi cooldown',
+            `Kutukan baru bisa dipakai lagi <t:${Math.floor((Date.now() + cooldownRemaining) / 1000)}:R>.`
+          ),
+        ],
+      });
+      return;
+    }
+
+    const mode = interaction.options.getString('mode') ?? 'normal';
     const alasan =
       interaction.options.getString('alasan') ?? randomPick(CURSE_REASONS_DEFAULT);
 
+    if (mode === 'random_miskin') {
+      const guild = interaction.guild!;
+      const miskinRole = await resolveMiskinRole(guild);
+      const muteMinutes = Math.floor(Math.random() * 2) + 1;
+      const members = await guild.members.fetch();
+      const candidates = members
+        .filter(
+          (member) =>
+            !member.user.bot &&
+            !isSesepuh(member) &&
+            !isBlessed(member) &&
+            member.presence?.status &&
+            member.presence.status !== 'offline'
+        )
+        .map((member) => member);
+
+      if (candidates.length === 0) {
+        await interaction.editReply({
+          embeds: [
+            errorEmbed(
+              'Nggak ada korban random',
+              'Saat ini nggak ada member online yang valid buat kena status miskin.'
+            ),
+          ],
+        });
+        return;
+      }
+
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+
+      try {
+        await target.roles.add(miskinRole.id);
+        await setTemporaryNickname(target, 'Cupu ');
+        if (!target.communicationDisabledUntilTimestamp || target.communicationDisabledUntilTimestamp < Date.now()) {
+          await target.timeout(muteMinutes * 60 * 1000, 'Random miskin dari /curse');
+        }
+        penaltyQueries.deleteActiveForRole.run(interaction.guildId!, target.id, miskinRole.id);
+        penaltyQueries.insert.run({
+          guild_id: interaction.guildId!,
+          user_id: target.id,
+          role_id: miskinRole.id,
+          expires_at: Date.now() + MISKIN_DURATION_MS,
+          created_by: executor.id,
+          reason: `Random miskin dari curse, mute ${muteMinutes} menit`,
+        });
+      } catch {
+        await interaction.editReply({
+          embeds: [
+            errorEmbed(
+              'Gagal kasih status miskin',
+              'Cek permission `Manage Roles`, `Moderate Members`, dan pastikan role bot paling atas.'
+            ),
+          ],
+        });
+        return;
+      }
+
+      statsQueries.upsert.run({
+        guild_id: interaction.guildId!,
+        user_id: executor.id,
+        bless_given: 0,
+        curse_given: 1,
+        roast_given: 0,
+      });
+      setCommandCooldown(interaction.guildId!, 'curse', executor.id);
+
+      await interaction.editReply({
+        embeds: [
+          sesepuhEmbed(
+            `💸 ${target.displayName} Kena Random Miskin`,
+            `Korban random hari ini jatuh ke ${target}.\n\n` +
+              `**Efek:** role miskin 1 jam\n` +
+              `**Mute:** ${muteMinutes} menit\n` +
+              `**Alasan:** ${alasan}\n` +
+              `**Dijatuhkan oleh:** ${executor}`,
+            '#8b0000'
+          ),
+        ],
+      });
+      return;
+    }
+
+    const target = interaction.options.getMember('target') as GuildMember | null;
+    const durationStr = interaction.options.getString('duration') ?? '10m';
+
     if (!target) {
       await interaction.editReply({
-        embeds: [errorEmbed('Target tidak ditemukan', 'Member tersebut tidak ada di server.')],
+        embeds: [errorEmbed('Target wajib diisi', 'Untuk mode normal, pilih target yang mau dikutuk.')],
       });
       return;
     }
@@ -94,7 +212,19 @@ export const curseCommand: SesepuhCommand = {
       return;
     }
 
-    // Jangan curse diri sendiri
+    if (isBlessed(target)) {
+      await interaction.editReply({
+        embeds: [
+          sesepuhEmbed(
+            '✨ Target Lagi Blessed',
+            `${target} lagi dapat aura emas. Selama buff aktif, dia immune dari /curse.`,
+            '#f1c40f'
+          ),
+        ],
+      });
+      return;
+    }
+
     if (target.id === executor.id) {
       await interaction.editReply({
         embeds: [
@@ -107,7 +237,6 @@ export const curseCommand: SesepuhCommand = {
       return;
     }
 
-    // Jangan curse sesepuh lain
     if (isSesepuh(target)) {
       await interaction.editReply({
         embeds: [
@@ -133,8 +262,10 @@ export const curseCommand: SesepuhCommand = {
       return;
     }
 
-    // Check if already timed out
-    if (target.communicationDisabledUntilTimestamp && target.communicationDisabledUntilTimestamp > Date.now()) {
+    if (
+      target.communicationDisabledUntilTimestamp &&
+      target.communicationDisabledUntilTimestamp > Date.now()
+    ) {
       const until = Math.floor(target.communicationDisabledUntilTimestamp / 1000);
       await interaction.editReply({
         embeds: [
@@ -148,7 +279,6 @@ export const curseCommand: SesepuhCommand = {
       return;
     }
 
-    // Apply timeout
     try {
       await target.timeout(durationMs, alasan);
     } catch {
@@ -167,7 +297,6 @@ export const curseCommand: SesepuhCommand = {
     const formattedDuration = formatDuration(durationMs);
     const expiresTimestamp = Math.floor(expiresAt / 1000);
 
-    // Save to DB
     curseQueries.insert.run({
       guild_id: interaction.guildId!,
       user_id: target.id,
@@ -177,7 +306,6 @@ export const curseCommand: SesepuhCommand = {
       expires_at: expiresAt,
     });
 
-    // Update stats
     statsQueries.upsert.run({
       guild_id: interaction.guildId!,
       user_id: executor.id,
@@ -185,6 +313,7 @@ export const curseCommand: SesepuhCommand = {
       curse_given: 1,
       roast_given: 0,
     });
+    setCommandCooldown(interaction.guildId!, 'curse', executor.id);
 
     const curseMsg = randomPick(CURSE_MESSAGES);
 
@@ -201,7 +330,6 @@ export const curseCommand: SesepuhCommand = {
 
     await interaction.editReply({ embeds: [embed] });
 
-    // Log
     await logAction(
       client,
       sesepuhEmbed(
@@ -211,7 +339,6 @@ export const curseCommand: SesepuhCommand = {
       )
     );
 
-    // DM target (kalau masih bisa terima DM sebelum timeout aktif penuh)
     try {
       await target.send({
         embeds: [

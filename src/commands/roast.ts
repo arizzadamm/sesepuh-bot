@@ -6,7 +6,7 @@ import {
 } from 'discord.js';
 import { SesepuhCommand } from '../utils/types';
 import { statsQueries } from '../utils/database';
-import { sesepuhEmbed, errorEmbed, randomPick } from '../utils/helpers';
+import { sesepuhEmbed, errorEmbed, randomPick, blessedSpeech, isBlessed } from '../utils/helpers';
 
 // ── Roast Pool ───────────────────────────────────────────
 const ROAST_POOL = [
@@ -75,6 +75,7 @@ export const roastCommand: SesepuhCommand = {
 
     const roastFn = randomPick(ROAST_POOL);
     const roastText = roastFn(target.displayName);
+    const opener = isBlessed(executor) ? `${blessedSpeech(executor)}\n\n` : '';
 
     // Update stats
     statsQueries.upsert.run({
@@ -89,7 +90,7 @@ export const roastCommand: SesepuhCommand = {
       embeds: [
         sesepuhEmbed(
           `🔥 Roast untuk ${target.displayName}`,
-          `${roastText}\n\n— *Sesepuh telah berbicara.* 👴`,
+          `${opener}${roastText}\n\n— *Sesepuh telah berbicara.* 👴`,
           '#FF4500'
         ).setThumbnail(target.user.displayAvatarURL()),
       ],
@@ -121,12 +122,13 @@ export const praiseCommand: SesepuhCommand = {
 
     const praiseFn = randomPick(PRAISE_POOL);
     const praiseText = praiseFn(target.displayName);
+    const opener = isBlessed(executor) ? `${blessedSpeech(executor)}\n\n` : '';
 
     await interaction.editReply({
       embeds: [
         sesepuhEmbed(
           `🌟 Pujian untuk ${target.displayName}`,
-          `${praiseText}\n\n— *Sesepuh memberikan restunya.* 👴`,
+          `${opener}${praiseText}\n\n— *Sesepuh memberikan restunya.* 👴`,
           '#FFD700'
         )
           .setThumbnail(target.user.displayAvatarURL())

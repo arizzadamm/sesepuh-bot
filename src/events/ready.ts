@@ -1,5 +1,6 @@
 import { Client, Events, ActivityType } from 'discord.js';
 import { startBuffScheduler } from '../utils/buffManager';
+import { startScheduleScheduler } from '../utils/scheduleManager';
 
 export function registerReadyEvent(client: Client): void {
   client.once(Events.ClientReady, (readyClient) => {
@@ -19,5 +20,6 @@ export function registerReadyEvent(client: Client): void {
 
     // Start buff expiry scheduler
     startBuffScheduler(client);
+    startScheduleScheduler(client);
   });
 }

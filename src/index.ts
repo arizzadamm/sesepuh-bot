@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { registerReadyEvent } from './events/ready';
 import { registerInteractionEvent } from './events/interactionCreate';
+import { registerVoiceStateEvent } from './events/voiceStateUpdate';
+import { startWebServer } from './web/server';
 
 // ── Validate Environment ─────────────────────────────────
 // Runtime bot hanya butuh token untuk login.
@@ -30,6 +32,8 @@ const client = new Client({
 // ── Register Events ──────────────────────────────────────
 registerReadyEvent(client);
 registerInteractionEvent(client);
+registerVoiceStateEvent(client);
+startWebServer();
 
 // ── Error Handling ───────────────────────────────────────
 client.on('error', (error) => {

@@ -4,7 +4,11 @@ import {
   TextChannel,
   Client,
   ColorResolvable,
+  Guild,
+  PermissionFlagsBits,
+  Role,
 } from 'discord.js';
+import { cooldownQueries } from './database';
 
 // ── Embed Builder Helpers ────────────────────────────────
 export function sesepuhEmbed(
@@ -17,7 +21,7 @@ export function sesepuhEmbed(
     .setDescription(description)
     .setColor(color)
     .setTimestamp()
-    .setFooter({ text: '👴 Sesepuh Bot v1 – Circle Edition' });
+    .setFooter({ text: '👴 Sesepuh Bot Beta (Created by MontenezaX)' });
 }
 
 export function successEmbed(title: string, description: string) {
@@ -75,6 +79,110 @@ export function isSesepuh(member: GuildMember): boolean {
     member.roles.cache.has(sesepuhRoleId) ||
     member.permissions.has('Administrator')
   );
+}
+
+export function isBlessed(member: GuildMember): boolean {
+  const blessRoleId = process.env.BLESS_ROLE_ID;
+  if (blessRoleId && member.roles.cache.has(blessRoleId)) return true;
+  return member.roles.cache.some((role) => role.name.toLowerCase() === 'blessed');
+}
+
+export function isMiskin(member: GuildMember): boolean {
+  const miskinRoleId = process.env.MISKIN_ROLE_ID;
+  if (miskinRoleId && member.roles.cache.has(miskinRoleId)) return true;
+  return member.roles.cache.some((role) => role.name.toLowerCase() === 'miskin');
+}
+
+export async function resolveBlessedRole(guild: Guild): Promise<Role> {
+  const configured = process.env.BLESS_ROLE_ID
+    ? guild.roles.cache.get(process.env.BLESS_ROLE_ID)
+    : null;
+  if (configured) return configured;
+
+  const existing = guild.roles.cache.find((role) => role.name.toLowerCase() === 'blessed');
+  if (existing) {
+    if (existing.color !== 0xf1c40f || !existing.permissions.has(PermissionFlagsBits.PrioritySpeaker)) {
+      await existing.edit({
+        color: 0xf1c40f,
+        permissions: existing.permissions.add(PermissionFlagsBits.PrioritySpeaker),
+        reason: 'Sync Blessed role defaults for Sesepuh Bot',
+      }).catch(() => {});
+    }
+    return existing;
+  }
+
+  return guild.roles.create({
+    name: 'Blessed',
+    color: 0xf1c40f,
+    permissions: [PermissionFlagsBits.PrioritySpeaker],
+    mentionable: true,
+    reason: 'Auto-created Blessed role for Sesepuh Bot',
+  });
+}
+
+export async function resolveMiskinRole(guild: Guild): Promise<Role> {
+  const configured = process.env.MISKIN_ROLE_ID
+    ? guild.roles.cache.get(process.env.MISKIN_ROLE_ID)
+    : null;
+  if (configured) return configured;
+
+  const existing = guild.roles.cache.find((role) => role.name.toLowerCase() === 'miskin');
+  if (existing) return existing;
+
+  return guild.roles.create({
+    name: 'miskin',
+    color: 0x7f8c8d,
+    mentionable: true,
+    reason: 'Auto-created miskin role for Sesepuh Bot',
+  });
+}
+
+export async function setTemporaryNickname(
+  member: GuildMember,
+  prefix: string
+): Promise<void> {
+  if (!member.manageable) return;
+  const baseName = member.displayName.replace(/^(✨ Blessed |Cupu )/i, '').trim();
+  const nextName = `${prefix}${baseName}`.slice(0, 32);
+  if (member.displayName === nextName) return;
+  await member.setNickname(nextName).catch(() => {});
+}
+
+export async function clearTemporaryNickname(member: GuildMember): Promise<void> {
+  if (!member.manageable) return;
+  const cleaned = member.displayName.replace(/^(✨ Blessed |Cupu )/i, '').trim();
+  if (cleaned === member.displayName) return;
+  await member.setNickname(cleaned.slice(0, 32) || null).catch(() => {});
+}
+
+export function blessedSpeech(member: GuildMember): string {
+  return `✨ Blessed ${member.displayName.replace(/^✨ Blessed /, '')} telah berbicara, dengarkan!`;
+}
+
+export function getCommandCooldownRemaining(
+  guildId: string,
+  commandName: string,
+  cooldownMs: number
+): number {
+  const record = cooldownQueries.get.get(guildId, commandName) as
+    | { last_used_at: number }
+    | undefined;
+  if (!record) return 0;
+  const elapsed = Date.now() - record.last_used_at;
+  return elapsed >= cooldownMs ? 0 : cooldownMs - elapsed;
+}
+
+export function setCommandCooldown(
+  guildId: string,
+  commandName: string,
+  userId: string
+): void {
+  cooldownQueries.upsert.run({
+    guild_id: guildId,
+    command_name: commandName,
+    last_used_at: Date.now(),
+    last_used_by: userId,
+  });
 }
 
 // ── Log to Channel ───────────────────────────────────────

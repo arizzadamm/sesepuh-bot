@@ -1,4 +1,4 @@
-# 👴 Sesepuh Bot v1 – Fun Pack (Circle Edition)
+# 👴 Sesepuh Bot Beta (Created by MontenezaX)
 
 Bot Discord untuk komunitas kecil yang aktif, dengan fitur Sesepuh Power yang fun dan interaktif.
 

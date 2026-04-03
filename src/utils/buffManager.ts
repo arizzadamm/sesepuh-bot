@@ -1,5 +1,6 @@
 import { Client, Guild } from 'discord.js';
-import { buffQueries } from './database';
+import { buffQueries, penaltyQueries } from './database';
+import { clearTemporaryNickname } from './helpers';
 
 interface ActiveBuff {
   id: number;
@@ -8,6 +9,10 @@ interface ActiveBuff {
   role_id: string;
   expires_at: number;
   created_by: string;
+}
+
+interface ActivePenalty extends ActiveBuff {
+  reason?: string;
 }
 
 /**
@@ -28,6 +33,7 @@ async function checkExpiredBuffs(client: Client): Promise<void> {
       const member = await guild.members.fetch(buff.user_id).catch(() => null);
       if (member) {
         await member.roles.remove(buff.role_id).catch(() => {});
+        await clearTemporaryNickname(member);
         console.log(
           `[BuffManager] Removed expired buff role ${buff.role_id} from ${buff.user_id}`
         );
@@ -41,6 +47,34 @@ async function checkExpiredBuffs(client: Client): Promise<void> {
   }
 }
 
+async function checkExpiredPenalties(client: Client): Promise<void> {
+  const expired = penaltyQueries.getExpired.all() as ActivePenalty[];
+
+  for (const penalty of expired) {
+    try {
+      const guild: Guild | undefined = client.guilds.cache.get(penalty.guild_id);
+      if (!guild) {
+        penaltyQueries.deleteById.run(penalty.id);
+        continue;
+      }
+
+      const member = await guild.members.fetch(penalty.user_id).catch(() => null);
+      if (member) {
+        await member.roles.remove(penalty.role_id).catch(() => {});
+        await clearTemporaryNickname(member);
+        console.log(
+          `[BuffManager] Removed expired penalty role ${penalty.role_id} from ${penalty.user_id}`
+        );
+      }
+
+      penaltyQueries.deleteById.run(penalty.id);
+    } catch (err) {
+      console.error(`[BuffManager] Error removing penalty ${penalty.id}:`, err);
+      penaltyQueries.deleteById.run(penalty.id);
+    }
+  }
+}
+
 /**
  * Start scheduler — jalankan ini sekali saat bot ready.
  */
@@ -49,8 +83,10 @@ export function startBuffScheduler(client: Client): void {
 
   // Langsung cek saat start (untuk buff yang expired saat bot offline)
   checkExpiredBuffs(client);
+  checkExpiredPenalties(client);
 
   setInterval(() => {
     checkExpiredBuffs(client);
+    checkExpiredPenalties(client);
   }, 30_000); // setiap 30 detik
 }
