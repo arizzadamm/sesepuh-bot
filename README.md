@@ -114,9 +114,11 @@ npm start
 
 1. Push code ke GitHub
 2. Buka [railway.app](https://railway.app) → New Project → Deploy from GitHub
-3. Pilih repo → set environment variables di Railway dashboard
-4. Ganti start command ke `npm run build && npm start`
-5. Done! Bot akan online 24/7
+3. Pilih repo → set minimal `DISCORD_TOKEN` di Railway dashboard
+4. Kalau slash command belum pernah diregister, tambahkan juga `CLIENT_ID` dan `GUILD_ID`, lalu jalankan `npm run deploy` sekali
+5. Jangan override start command ke `npm run build && npm start` kalau `nixpacks.toml` dipakai
+6. Biarkan Railway build dengan `npm run build`, lalu start dengan `node dist/index.js`
+7. Done! Bot akan online 24/7
 
 ---
 

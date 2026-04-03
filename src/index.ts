@@ -4,7 +4,9 @@ import { registerReadyEvent } from './events/ready';
 import { registerInteractionEvent } from './events/interactionCreate';
 
 // ── Validate Environment ─────────────────────────────────
-const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
+// Runtime bot hanya butuh token untuk login.
+// CLIENT_ID dan GUILD_ID dipakai saat deploy slash commands.
+const requiredEnv = ['DISCORD_TOKEN'];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
     console.error(`❌ Missing required environment variable: ${key}`);
