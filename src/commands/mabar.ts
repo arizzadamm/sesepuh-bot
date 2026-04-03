@@ -15,6 +15,8 @@ import {
 } from '../utils/helpers';
 import {
   buildTeamBalanceScore,
+  formatJakartaDateLabel,
+  getJakartaDayRange,
   parseScheduleInput,
 } from '../utils/featureHelpers';
 import {
@@ -24,6 +26,7 @@ import {
   streakQueries,
   voteQueries,
 } from '../utils/database';
+import { generateAiText } from '../utils/ai';
 
 interface RankedMember {
   member: GuildMember;
@@ -119,6 +122,9 @@ export const jadwalCommand: SesepuhCommand = {
         .addIntegerOption((opt) =>
           opt.setName('id').setDescription('ID jadwal').setRequired(true)
         )
+    )
+    .addSubcommand((sub) =>
+      sub.setName('recap').setDescription('Lihat recap jadwal mabar hari ini')
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -218,6 +224,63 @@ export const jadwalCommand: SesepuhCommand = {
                   `Host: <@${schedule.host_id}>`
               )
               .join('\n\n'),
+            '#3498db'
+          ),
+        ],
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (subcommand === 'recap') {
+      const { start, end } = getJakartaDayRange();
+      const schedules = scheduleQueries.getInRange.all(
+        interaction.guildId!,
+        start,
+        end
+      ) as ScheduleRow[];
+
+      if (schedules.length === 0) {
+        await interaction.reply({
+          embeds: [
+            sesepuhEmbed(
+              '🗓️ Recap Hari Ini',
+              'Hari ini belum ada jadwal mabar yang tercatat. Kalau mau rame, tinggal bikin war room baru.',
+              '#95a5a6'
+            ),
+          ],
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const summaryLines = schedules.map(
+        (schedule) =>
+          `- #${schedule.id} | ${schedule.title} | ${schedule.game} | ${formatJakartaDateLabel(
+            schedule.scheduled_for
+          )} WIB | host <@${schedule.host_id}>`
+      );
+      const aiRecap = await generateAiText(
+        `Buat recap jadwal mabar harian untuk circle Discord gaming dalam bahasa Indonesia gaul. Maksimal 4 kalimat. Sebut game yang dominan dan vibe harinya.\n\nData jadwal hari ini:\n${summaryLines.join(
+          '\n'
+        )}`,
+        'Kamu adalah announcer circle Discord yang bikin recap jadwal harian singkat, enak dibaca, dan berenergi.'
+      );
+      const detailText = schedules
+        .map(
+          (schedule) =>
+            `**#${schedule.id} — ${schedule.title}**\n` +
+            `Game: **${schedule.game}**\n` +
+            `Mulai: <t:${Math.floor(schedule.scheduled_for / 1000)}:F>\n` +
+            `Host: <@${schedule.host_id}>`
+        )
+        .join('\n\n');
+
+      await interaction.reply({
+        embeds: [
+          sesepuhEmbed(
+            '🗓️ Recap Jadwal Hari Ini',
+            `${aiRecap ?? 'Hari ini circle punya beberapa agenda yang siap jalan. Tinggal pilih lobby mana yang paling pengen digas.'}\n\n${detailText}`,
             '#3498db'
           ),
         ],

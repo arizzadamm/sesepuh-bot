@@ -5,8 +5,8 @@ import { curseCommand } from './curse';
 import { summonCommand } from './summon';
 import { roastCommand, praiseCommand } from './roast';
 import { spinCommand, teamCommand } from './fun';
-import { balanceCommand, jadwalCommand, matchCommand, votemapCommand } from './mabar';
-import { circleCommand, misiCommand, sesepuhCommand, streakCommand } from './circle';
+import { balanceCommand, jadwalCommand, votemapCommand } from './mabar';
+import { misiCommand, sesepuhCommand } from './circle';
 import { soundboardCommand } from './soundboard';
 import { tutorialCommand } from './tutorial';
 import { statusroleCommand } from './statusrole';
@@ -25,11 +25,8 @@ const commandList: SesepuhCommand[] = [
   jadwalCommand,
   balanceCommand,
   votemapCommand,
-  circleCommand,
-  streakCommand,
   misiCommand,
   sesepuhCommand,
-  matchCommand,
   soundboardCommand,
   tutorialCommand,
   statusroleCommand,

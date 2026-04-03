@@ -7,6 +7,7 @@ import {
 import { SesepuhCommand } from '../utils/types';
 import { statsQueries } from '../utils/database';
 import { sesepuhEmbed, errorEmbed, randomPick, blessedSpeech, isBlessed } from '../utils/helpers';
+import { generateAiText } from '../utils/ai';
 
 // ── Roast Pool ───────────────────────────────────────────
 const ROAST_POOL = [
@@ -74,7 +75,11 @@ export const roastCommand: SesepuhCommand = {
     }
 
     const roastFn = randomPick(ROAST_POOL);
-    const roastText = roastFn(target.displayName);
+    const roastText =
+      (await generateAiText(
+        `Buat satu roast singkat bahasa Indonesia gaul untuk member bernama ${target.displayName}. Nada santai, lucu, tidak terlalu kejam, maksimal 2 kalimat.`,
+        'Kamu adalah penulis roast lucu untuk komunitas Discord gaming Indonesia.'
+      )) ?? roastFn(target.displayName);
     const opener = isBlessed(executor) ? `${blessedSpeech(executor)}\n\n` : '';
 
     // Update stats
@@ -121,7 +126,11 @@ export const praiseCommand: SesepuhCommand = {
     }
 
     const praiseFn = randomPick(PRAISE_POOL);
-    const praiseText = praiseFn(target.displayName);
+    const praiseText =
+      (await generateAiText(
+        `Buat satu pujian singkat bahasa Indonesia gaul untuk member bernama ${target.displayName}. Nada hangat, cocok untuk komunitas Discord gaming, maksimal 2 kalimat.`,
+        'Kamu adalah penulis pujian singkat yang hangat dan natural untuk komunitas Discord Indonesia.'
+      )) ?? praiseFn(target.displayName);
     const opener = isBlessed(executor) ? `${blessedSpeech(executor)}\n\n` : '';
 
     await interaction.editReply({

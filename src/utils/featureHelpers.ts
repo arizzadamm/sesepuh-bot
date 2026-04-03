@@ -2,6 +2,9 @@ import { Client, GuildMember } from 'discord.js';
 import { scheduleQueries } from './database';
 import { sesepuhEmbed } from './helpers';
 
+const JAKARTA_TIMEZONE = 'Asia/Jakarta';
+const JAKARTA_UTC_OFFSET_HOURS = 7;
+
 const DAILY_MISSIONS = [
   'Main 2 match bareng member circle',
   'Masuk VC minimal 30 menit',
@@ -26,7 +29,17 @@ function seededNumber(input: string): number {
 }
 
 export function getMissionDay(date = new Date()): string {
-  return date.toISOString().slice(0, 10);
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: JAKARTA_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
 }
 
 export function getPreviousMissionDay(date = new Date()): string {
@@ -54,18 +67,36 @@ export function parseScheduleInput(input: string): Date | null {
   if (!match) return null;
 
   const [, year, month, day, hour, minute] = match;
-  const parsed = new Date(
+  const utcMillis = Date.UTC(
     Number(year),
     Number(month) - 1,
     Number(day),
-    Number(hour),
+    Number(hour) - JAKARTA_UTC_OFFSET_HOURS,
     Number(minute),
     0,
     0
   );
+  const parsed = new Date(utcMillis);
 
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
+}
+
+export function getJakartaDayRange(date = new Date()): { start: number; end: number } {
+  const missionDay = getMissionDay(date);
+  const [year, month, day] = missionDay.split('-').map(Number);
+  const start = Date.UTC(year, month - 1, day, -JAKARTA_UTC_OFFSET_HOURS, 0, 0, 0);
+  const end = start + 24 * 60 * 60 * 1000;
+  return { start, end };
+}
+
+export function formatJakartaDateLabel(timestamp: number): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: JAKARTA_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(timestamp));
 }
 
 export function buildTeamBalanceScore(

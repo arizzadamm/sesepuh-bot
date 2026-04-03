@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, Client, GuildMember, SlashCommandBuilder }
 import { SesepuhCommand } from '../utils/types';
 import { loreQueries } from '../utils/database';
 import { errorEmbed, isSesepuh, sesepuhEmbed, successEmbed } from '../utils/helpers';
+import { generateAiText } from '../utils/ai';
 
 export const rememberCommand: SesepuhCommand = {
   data: new SlashCommandBuilder()
@@ -25,7 +26,13 @@ export const rememberCommand: SesepuhCommand = {
     }
 
     const target = interaction.options.getUser('target', true);
-    const memoryText = interaction.options.getString('catatan', true).trim();
+    const rawMemoryText = interaction.options.getString('catatan', true).trim();
+    const refinedMemoryText =
+      (await generateAiText(
+        `Rapikan catatan lore member Discord ini jadi 1 frasa pendek bahasa Indonesia gaul, natural, dan enak dibaca. Jangan pakai titik di akhir. Fokus ke inti sifat/perilaku.\n\nNama: ${target.username}\nCatatan asli: ${rawMemoryText}`,
+        'Kamu editor lore Discord. Tugasmu merapikan catatan mentah jadi frasa singkat yang lucu, natural, dan tetap mempertahankan makna asli.'
+      )) ?? rawMemoryText;
+    const memoryText = refinedMemoryText.trim();
 
     loreQueries.insert.run({
       guild_id: interaction.guildId!,
@@ -74,11 +81,18 @@ export const loreCommand: SesepuhCommand = {
     }
 
     const latest = loreRows[0];
+    const loreSummary =
+      (await generateAiText(
+        `Ringkas lore member Discord bernama ${target.username} berdasarkan catatan ini:\n${loreRows
+          .map((row) => `- ${row.memory_text}`)
+          .join('\n')}\n\nBuat 1 kalimat fun dalam bahasa Indonesia gaul. Contoh gaya: "@andi dikenal sebagai tukang AFK sejak 2024".`,
+        'Kamu merangkum reputasi member Discord jadi satu kalimat pendek, lucu, dan natural.'
+      )) ?? `${target} dikenal sebagai: **${latest.memory_text}**`;
     await interaction.reply({
       embeds: [
         sesepuhEmbed(
           `📜 Lore ${target.username}`,
-          `${target} dikenal sebagai: **${latest.memory_text}**\n` +
+          `${loreSummary}\n` +
             `Tercatat sejak <t:${latest.created_at}:D>\n\n` +
             `**Riwayat lore:**\n` +
             loreRows

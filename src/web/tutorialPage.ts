@@ -24,10 +24,10 @@ export function renderTutorialPage(): string {
   const mabar = featureCard(
     'Mabar Ops',
     [
-      '<code>/jadwal</code> bikin war room mabar lengkap dengan reminder otomatis.',
+      '<code>/jadwal</code> bikin war room mabar lengkap dengan reminder otomatis dan waktu WIB yang konsisten.',
       '<code>/balance</code> bagi tim lebih rata berdasarkan histori circle.',
       '<code>/votemap</code> voting map atau mode biar lobby nggak ribet.',
-      '<code>/match</code> catat hasil match, MVP, carry, beban, dan dampaknya ke leaderboard.',
+      'Fitur yang terlalu manual sudah dirampingkan supaya flow bot lebih praktis dipakai harian.',
     ],
     '#5865f2'
   );
@@ -49,7 +49,7 @@ export function renderTutorialPage(): string {
       '<code>/remember @user catatan</code> simpan sejarah receh atau reputasi member.',
       '<code>/lore @user</code> tampilkan identitas khas member, contohnya: tukang AFK sejak 2024.',
       '<code>/tutorial</code> buka panduan singkat per topik langsung dari Discord.',
-      '<code>/misi</code>, <code>/streak</code>, dan <code>/circle</code> bikin aktivitas circle punya progres jangka panjang.',
+      'Kalau token AI diisi, lore, roast, praise, dan nasihat bisa terasa lebih hidup.',
     ],
     '#eb459e'
   );
@@ -304,7 +304,7 @@ export function renderTutorialPage(): string {
           <div class="pill-row">
             <span class="pill">Railway Ready</span>
             <span class="pill">Discord Styled</span>
-            <span class="pill">20 Slash Commands</span>
+            <span class="pill">17 Slash Commands</span>
           </div>
           <h1>Sesepuh Bot Tutorial Hub</h1>
           <p>

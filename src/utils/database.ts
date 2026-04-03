@@ -289,6 +289,15 @@ export const scheduleQueries = {
     LIMIT ?
   `),
 
+  getInRange: db.prepare(`
+    SELECT * FROM schedules
+    WHERE guild_id = ?
+      AND scheduled_for >= ?
+      AND scheduled_for < ?
+      AND status IN ('active', 'completed')
+    ORDER BY scheduled_for ASC
+  `),
+
   getReminderCandidates: db.prepare(`
     SELECT * FROM schedules
     WHERE status = 'active'

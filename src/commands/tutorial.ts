@@ -9,7 +9,7 @@ const TUTORIALS = {
       `Mulai dari yang paling penting:\n` +
       `• \`/deploy\` command tidak dipakai di Discord, itu buat register slash command dari terminal\n` +
       `• \`/bless\` kasih role buff random ke Sesepuh yang lagi online\n` +
-      `• \`/curse\` kasih timeout ke member atau random status miskin\n` +
+      `• \`/curse\` kasih timeout ke member atau random status miskin, bisa juga dibatasi per role\n` +
       `• \`/bless\` dan \`/curse\` punya cooldown 30 menit per server\n` +
       `• \`/summon\` buat narik orang ke VC\n` +
       `• \`/tutorial\` ini buat ngelihat panduan singkat tiap topik\n` +
@@ -37,6 +37,7 @@ const TUTORIALS = {
       `• bot harus punya permission \`Manage Roles\`\n` +
       `• posisi role bot harus di atas role miskin\n` +
       `• punish dari summon dipilih random dari target yang mangkir dan masih online\n` +
+      `• \`/curse\` mode random juga bisa dibatasi ke role tertentu\n` +
       `• kalau kena punish, role miskin lepas otomatis setelah 1 jam\n` +
       `• kalau user keburu masuk VC, role miskin langsung dicabut otomatis`,
     color: '#c0392b',
@@ -45,11 +46,10 @@ const TUTORIALS = {
     title: '🎮 Tutorial Fitur Mabar',
     text:
       `Fitur buat ngatur tongkrongan game:\n` +
-      `• \`/jadwal\` buat schedule dan reminder mabar\n` +
+      `• \`/jadwal\` buat schedule dan reminder mabar dengan timezone WIB\n` +
       `• \`/balance\` bagi tim lebih rata\n` +
       `• \`/votemap\` voting map atau mode\n` +
-      `• \`/match\` catat hasil, MVP, carry, beban\n` +
-      `• \`/circle\` lihat highlight dan leaderboard`,
+      `• fokus sekarang lebih ke flow yang otomatis dan cepat dipakai`,
     color: '#27ae60',
   },
   fun: {
@@ -60,8 +60,8 @@ const TUTORIALS = {
       `• \`/soundboard\` kirim meme soundboard versi chat\n` +
       `• \`/sesepuh\` buat nasihat, keputusan, dan roastmode\n` +
       `• \`/misi\` buat misi harian circle\n` +
-      `• \`/streak\` buat ngelacak member yang rajin atau bandel\n` +
-      `• \`/remember\` dan \`/lore\` buat nyimpen sejarah receh circle`,
+      `• \`/remember\` dan \`/lore\` buat nyimpen sejarah receh circle\n` +
+      `• kalau token AI diisi, beberapa respons bisa jadi lebih dinamis`,
     color: '#8e44ad',
   },
 } as const;

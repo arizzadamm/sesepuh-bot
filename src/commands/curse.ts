@@ -3,6 +3,7 @@ import {
   ChatInputCommandInteraction,
   Client,
   GuildMember,
+  Role,
 } from 'discord.js';
 import { SesepuhCommand } from '../utils/types';
 import { curseQueries, penaltyQueries, statsQueries } from '../utils/database';
@@ -62,6 +63,12 @@ export const curseCommand: SesepuhCommand = {
         .setDescription('Member yang akan dikutuk untuk mode normal')
         .setRequired(false)
     )
+    .addRoleOption((opt) =>
+      opt
+        .setName('role')
+        .setDescription('Untuk mode random, ambil korban dari role ini')
+        .setRequired(false)
+    )
     .addStringOption((opt) =>
       opt
         .setName('duration')
@@ -112,6 +119,7 @@ export const curseCommand: SesepuhCommand = {
     const mode = interaction.options.getString('mode') ?? 'normal';
     const alasan =
       interaction.options.getString('alasan') ?? randomPick(CURSE_REASONS_DEFAULT);
+    const targetRole = interaction.options.getRole('role') as Role | null;
 
     if (mode === 'random_miskin') {
       const guild = interaction.guild!;
@@ -124,6 +132,7 @@ export const curseCommand: SesepuhCommand = {
             !member.user.bot &&
             !isSesepuh(member) &&
             !isBlessed(member) &&
+            (!targetRole || member.roles.cache.has(targetRole.id)) &&
             member.presence?.status &&
             member.presence.status !== 'offline'
         )
@@ -186,6 +195,7 @@ export const curseCommand: SesepuhCommand = {
             `Korban random hari ini jatuh ke ${target}.\n\n` +
               `**Efek:** role miskin 1 jam\n` +
               `**Mute:** ${muteMinutes} menit\n` +
+              `**Role pool:** ${targetRole ? `<@&${targetRole.id}>` : 'Semua member valid'}\n` +
               `**Alasan:** ${alasan}\n` +
               `**Dijatuhkan oleh:** ${executor}`,
             '#8b0000'

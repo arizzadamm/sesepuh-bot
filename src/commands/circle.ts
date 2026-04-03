@@ -17,6 +17,7 @@ import {
   getMissionDay,
   getPreviousMissionDay,
 } from '../utils/featureHelpers';
+import { generateAiText } from '../utils/ai';
 import {
   matchQueries,
   missionQueries,
@@ -423,9 +424,13 @@ export const sesepuhCommand: SesepuhCommand = {
 
     if (subcommand === 'nasihat') {
       const topic = interaction.options.getString('topik', true);
+      const aiAdvice = await generateAiText(
+        `Beri nasihat singkat bahasa Indonesia gaul tentang topik: ${topic}. Maksimal 2 kalimat, bijak tapi santai, cocok untuk komunitas Discord gaming.`,
+        'Kamu adalah Sesepuh digital yang memberi nasihat singkat, santai, dan berkarakter.'
+      );
       await interaction.reply({
         embeds: [
-          sesepuhEmbed('👴 Nasihat Sesepuh', randomPick(NASIHAT_POOL)(topic), '#d35400'),
+          sesepuhEmbed('👴 Nasihat Sesepuh', aiAdvice ?? randomPick(NASIHAT_POOL)(topic), '#d35400'),
         ],
       });
       return;
@@ -449,11 +454,16 @@ export const sesepuhCommand: SesepuhCommand = {
       }
 
       const chosen = randomPick(options);
+      const aiDecision = await generateAiText(
+        `Bantu pilih satu opsi terbaik untuk circle Discord gaming dari daftar ini: ${options.join(', ')}.\n\nBalas singkat dalam bahasa Indonesia gaul dengan format:\nPilihan: <satu opsi>\nAlasan: <alasan singkat 1 kalimat>`,
+        'Kamu adalah Sesepuh digital yang mengambil keputusan cepat, santai, dan masuk akal untuk circle Discord gaming.'
+      );
       await interaction.reply({
         embeds: [
           sesepuhEmbed(
             '⚖️ Putusan Sesepuh',
-            `Dari semua kebisingan itu, pilihan Sesepuh jatuh pada: **${chosen}**`,
+            aiDecision ??
+              `Pilihan: **${chosen}**\nAlasan: yang ini paling enak dieksekusi dulu, sisanya jangan kebanyakan debat.`,
             '#d35400'
           ),
         ],
@@ -463,11 +473,15 @@ export const sesepuhCommand: SesepuhCommand = {
 
     const target = interaction.options.getUser('target', true);
     const context = interaction.options.getString('konteks', true);
+    const aiRoast = await generateAiText(
+      `Buat roastmode singkat bahasa Indonesia gaul untuk ${target.username} dalam konteks ${context}. Maksimal 2 kalimat, lucu, tidak vulgar, cocok untuk circle Discord gaming.`,
+      'Kamu menulis roast kontekstual yang lucu, ringan, dan cocok untuk komunitas gaming Indonesia.'
+    );
     await interaction.reply({
       embeds: [
         sesepuhEmbed(
           '🔥 Roastmode Sesepuh',
-          randomPick(ROASTMODE_POOL)(target.username, context),
+          aiRoast ?? randomPick(ROASTMODE_POOL)(target.username, context),
           '#d35400'
         ),
       ],

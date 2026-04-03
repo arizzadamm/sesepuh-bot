@@ -30,6 +30,12 @@ export const commandDefinitions = [
         .setDescription('Member yang akan dikutuk untuk mode normal')
         .setRequired(false)
     )
+    .addRoleOption((opt) =>
+      opt
+        .setName('role')
+        .setDescription('Untuk mode random, ambil korban dari role ini')
+        .setRequired(false)
+    )
     .addStringOption((opt) =>
       opt
         .setName('duration')
@@ -200,6 +206,9 @@ export const commandDefinitions = [
         .addIntegerOption((opt) =>
           opt.setName('id').setDescription('ID jadwal').setRequired(true)
         )
+    )
+    .addSubcommand((sub) =>
+      sub.setName('recap').setDescription('Lihat recap jadwal mabar hari ini')
     ),
 
   new SlashCommandBuilder()
@@ -275,60 +284,6 @@ export const commandDefinitions = [
     ),
 
   new SlashCommandBuilder()
-    .setName('circle')
-    .setDescription('🏆 Lihat MVP, highlight, dan leaderboard circle')
-    .addSubcommand((sub) =>
-      sub
-        .setName('mvp')
-        .setDescription('Lihat MVP circle berdasarkan data match dan aktivitas')
-        .addIntegerOption((opt) =>
-          opt
-            .setName('limit')
-            .setDescription('Jumlah leaderboard')
-            .setMinValue(1)
-            .setMaxValue(10)
-            .setRequired(false)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub.setName('highlight').setDescription('Ringkasan highlight circle terbaru')
-    ),
-
-  new SlashCommandBuilder()
-    .setName('streak')
-    .setDescription('📈 Kelola reward/punishment streak anggota circle')
-    .addSubcommand((sub) =>
-      sub
-        .setName('lihat')
-        .setDescription('Lihat streak member')
-        .addUserOption((opt) =>
-          opt.setName('target').setDescription('Member yang dicek').setRequired(true)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName('apresiasi')
-        .setDescription('Tambah reward streak member')
-        .addUserOption((opt) =>
-          opt.setName('target').setDescription('Member yang diapresiasi').setRequired(true)
-        )
-        .addStringOption((opt) =>
-          opt.setName('alasan').setDescription('Alasan apresiasi').setRequired(false)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName('pelanggaran')
-        .setDescription('Tambah bad streak member')
-        .addUserOption((opt) =>
-          opt.setName('target').setDescription('Member yang dicatat').setRequired(true)
-        )
-        .addStringOption((opt) =>
-          opt.setName('alasan').setDescription('Alasan pelanggaran').setRequired(false)
-        )
-    ),
-
-  new SlashCommandBuilder()
     .setName('misi')
     .setDescription('🎯 Ambil misi harian circle dan claim progresmu')
     .addSubcommand((sub) =>
@@ -380,51 +335,6 @@ export const commandDefinitions = [
         .addStringOption((opt) =>
           opt.setName('konteks').setDescription('Contoh: ranked, scrim, duo').setRequired(true)
         )
-    ),
-
-  new SlashCommandBuilder()
-    .setName('match')
-    .setDescription('🎮 Catat hasil mabar dan lihat statistik pemain')
-    .addSubcommand((sub) =>
-      sub
-        .setName('catat')
-        .setDescription('Catat hasil match terbaru')
-        .addStringOption((opt) =>
-          opt.setName('game').setDescription('Nama game').setRequired(true)
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName('hasil')
-            .setDescription('Win atau lose')
-            .addChoices(
-              { name: '🏆 Win', value: 'win' },
-              { name: '💀 Lose', value: 'lose' }
-            )
-            .setRequired(true)
-        )
-        .addUserOption((opt) =>
-          opt.setName('mvp').setDescription('MVP match').setRequired(false)
-        )
-        .addUserOption((opt) =>
-          opt.setName('carry').setDescription('Siapa yang paling carry').setRequired(false)
-        )
-        .addUserOption((opt) =>
-          opt.setName('beban').setDescription('Siapa yang paling bebannya terasa').setRequired(false)
-        )
-        .addStringOption((opt) =>
-          opt.setName('catatan').setDescription('Catatan match').setRequired(false)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName('stats')
-        .setDescription('Lihat statistik match member')
-        .addUserOption((opt) =>
-          opt.setName('target').setDescription('Member yang dicek').setRequired(true)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub.setName('recent').setDescription('Lihat hasil match terbaru')
     ),
 
   new SlashCommandBuilder()
