@@ -1,8 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "python3", "gcc", "gnumake"]
+
 [phases.install]
-cmds = ["npm install", "npm rebuild better-sqlite3"]
+cmds = ["npm install --include=dev"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["npm run build && ls -la dist/"]
 
 [start]
 cmd = "node dist/index.js"
