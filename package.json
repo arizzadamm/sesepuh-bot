@@ -1,0 +1,25 @@
+{
+  "name": "sesepuh-bot",
+  "version": "1.0.0",
+  "description": "Sesepuh Bot v1 – Fun Pack (Circle Edition)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "deploy": "ts-node src/deploy-commands.ts",
+    "watch": "ts-node-dev --respawn src/index.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
