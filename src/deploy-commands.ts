@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
-import { commandList } from './commands';
+import { commandDefinitions } from './commands/definitions';
 
 const token = process.env.DISCORD_TOKEN!;
 const clientId = process.env.CLIENT_ID!;
@@ -13,7 +13,7 @@ if (!token || !clientId || !guildId) {
 
 const rest = new REST().setToken(token);
 
-const commandsData = commandList.map((cmd) => cmd.data.toJSON());
+const commandsData = commandDefinitions.map((cmd) => cmd.toJSON());
 
 (async () => {
   try {
